@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+
+services:
+  jenkins-build:   
+    # image: jenkins/jenkins:2.452.1-lts-jdk11
+    # image: jenkins/jenkins:2.452.1-lts-jdk21
+    
+    # image: jenkins/jenkins:2.462.2-lts-jdk11
+    
+    image: jenkins/jenkins:lts-jdk21
+    hostname: "{{.Service.Name}}.{{.Node.Hostname}}"
+    networks:
+      - default
+      - jenkins-build
+      - traefik
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      - type: bind
+        source: /home/miro/workspaces/volumes/build-jenkins_home
+        target: /var/jenkins_home
+    ports:
+      - target: 8080
+        published: 48080
+        protocol: tcp
+        mode: host
+      - target: 50000
+        published: 50000
+        protocol: tcp
+        mode: host
+    deploy:
+      update_config:
+        parallelism: 1
+        failure_action: pause
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.labels.jenkins.node == controller
+      labels:
+        traefik.enable: 'true'
+
+        traefik.http.routers.websecure-to-jenkins-build.entrypoints: websecure
+        traefik.http.routers.websecure-to-jenkins-build.rule: Host(`jenkins.${DOMAIN:?error}`)
+        traefik.http.routers.websecure-to-jenkins-build.tls: 'true'
+        traefik.http.services.jenkins-build.loadbalancer.server.port: 8080
+
+        traefik.swarm.network: traefik
+        traefik.swarm.lbswarm: 'true'
+
+  docker-socket-proxy:
+    image: alpine/socat
+    networks:
+      - default
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    command:
+      tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock
+    deploy:
+      placement:
+        constraints:
+          - node.labels.jenkins == true
+          - node.role == manager
+      restart_policy:
+        condition: any
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: "192.168.104.0/24"
+
+  jenkins-build:
+    external: true
+
+  traefik:
+    external: true

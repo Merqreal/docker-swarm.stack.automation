@@ -44,14 +44,12 @@ services:
           - node.labels.jenkins.node == controller
       labels:
         traefik.enable: 'true'
-
-        traefik.http.routers.websecure-to-jenkins-build.entrypoints: websecure
-        traefik.http.routers.websecure-to-jenkins-build.rule: Host(`jenkins.${DOMAIN:?error}`)
-        traefik.http.routers.websecure-to-jenkins-build.tls: 'true'
+        traefik.http.routers.jenkins-build.rule: Host(`jenkins.mignatov.duckdns.org`)
+        traefik.http.routers.jenkins-build.entrypoints: websecure
+        traefik.http.routers.jenkins-build.tls: 'true'
+        traefik.http.routers.jenkins-build.tls.certresolver: myresolver
         traefik.http.services.jenkins-build.loadbalancer.server.port: 8080
-
-        traefik.swarm.network: traefik
-        traefik.swarm.lbswarm: 'true'
+        traefik.docker.network: traefik
 
   docker-socket-proxy:
     image: alpine/socat

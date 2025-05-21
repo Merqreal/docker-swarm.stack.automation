@@ -44,7 +44,7 @@ services:
           - node.labels.jenkins.node == controller
       labels:
         traefik.enable: 'true'
-        traefik.http.routers.jenkins-build.rule: Host(`jenkins.mignatov.duckdns.org`)
+        traefik.http.routers.jenkins-build.rule: Host(`jenkins.${DOMAIN:?error}`)
         traefik.http.routers.jenkins-build.entrypoints: websecure
         traefik.http.routers.jenkins-build.tls: 'true'
         traefik.http.routers.jenkins-build.tls.certresolver: myresolver
